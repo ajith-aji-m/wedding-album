@@ -93,3 +93,45 @@ body:has(.album-experience) main{margin:0}
 .book-spread{animation:album-spread-enter .72s cubic-bezier(.2,.72,.18,1) both}
 @keyframes album-spread-enter{from{clip-path:inset(0 48% 0 48%);filter:brightness(.7);transform:rotateY(-10deg) translateZ(-8px)}to{clip-path:inset(0);filter:brightness(1);transform:rotateY(0) translateZ(0)}}
 @media(prefers-reduced-motion:reduce){.book-spread{animation:none!important}}
+
+
+/* Crimson wedding-night palette */
+html:has(.album-experience), body:has(.album-experience) {
+  background: #17070d !important;
+}
+.album-experience {
+  background:
+    radial-gradient(ellipse at 50% 32%, rgba(111, 18, 48, .38) 0%, rgba(48, 8, 23, .25) 42%, transparent 72%),
+    linear-gradient(145deg, #200912 0%, #12070c 52%, #080609 100%) !important;
+}
+.album-experience::before {
+  background: radial-gradient(ellipse at center, rgba(155, 25, 61, .14), transparent 66%) !important;
+}
+.album-topline { color: #d9a4b2 !important; }
+.album-status { color: #d4a8b3 !important; }
+.album-folder-form input {
+  background: rgba(49, 12, 26, .88) !important;
+  border-color: rgba(199, 75, 108, .42) !important;
+}
+.album-folder-form input:focus { border-color: #d45b7c !important; }
+.album-folder-form button {
+  color: #fff1f4 !important;
+  border-color: rgba(236, 120, 151, .72) !important;
+  background: linear-gradient(135deg, #b5234d, #74132f) !important;
+  box-shadow: 0 5px 18px rgba(130, 12, 45, .24);
+}
+.connect-drive-link, .connected-label, .album-count { color: #c99aa7 !important; }
+.connected-label span { background: #e06b8a !important; box-shadow: 0 0 9px rgba(224, 107, 138, .6); }
+.book-cover {
+  background: radial-gradient(ellipse at 55% 42%, #68243a 0%, #401324 50%, #210a13 100%) !important;
+  color: #f0c8d2 !important;
+  box-shadow: inset 0 0 0 1px rgba(241, 174, 193, .58), inset 0 0 0 8px rgba(12, 3, 7, .2), inset 0 0 0 10px rgba(241, 145, 173, .14), inset 12px 0 20px rgba(0,0,0,.35) !important;
+}
+.cover-border { border-color: rgba(241, 174, 193, .46) !important; }
+.cover-topline, .cover-date, .cover-hint { color: #d9a4b2 !important; }
+.cover-emblem { border-color: rgba(241, 174, 193, .48) !important; color: #f0b3c4 !important; }
+.cover-title { color: #fff0f3 !important; }
+.cover-title em, .cover-divider { color: #f0a7bd !important; }
+.cover-divider i { background: rgba(241, 174, 193, .52) !important; }
+.cover-names { color: #ffe3ea !important; }
+.cover-names b { color: #f0a7bd !important; }
