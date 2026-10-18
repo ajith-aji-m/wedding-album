@@ -27,7 +27,7 @@ export default function Home() {
   function extractDriveFolderId(value: string): string | null {
     const trimmed = value.trim();
     // Accept a full Drive folder URL or a folder ID pasted directly.
-    const urlMatch = trimmed.match(/drive\\.google\\.com\\/drive\\/folders\\/([a-zA-Z0-9_-]+)/);
+    const urlMatch = trimmed.match(/drive\.google\.com\/drive\/folders\/([a-zA-Z0-9_-]+)/);
     if (urlMatch?.[1]) return urlMatch[1];
     if (/^[a-zA-Z0-9_-]{10,}$/.test(trimmed)) return trimmed;
     return null;
