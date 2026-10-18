@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       return response;
     }
     const response = NextResponse.json({ files: data.files ?? [], nextPageToken: data.nextPageToken ?? null });
-    saveRefreshedSession(response);
+    saveRefreshedSession(response, driveSession.refreshedSession);
     return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to load Google Drive files.";
