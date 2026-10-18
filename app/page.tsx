@@ -1,137 +1,157 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { ArrowDown, ArrowLeft, ArrowRight, Heart, Maximize2, Play, Sparkles, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Heart, Link2, LoaderCircle, Play, X } from "lucide-react";
 
-const memories = [
-  { type: "photo", label: "The beginning", date: "A moment to remember", image: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1400&q=85", className: "memory-tall" },
-  { type: "photo", label: "A little forever", date: "The day everything changed", image: "https://images.unsplash.com/photo-1537633552985-df8429e8048b?auto=format&fit=crop&w=1200&q=85", className: "" },
-  { type: "video", label: "A moving memory", date: "A sample video placeholder", image: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1200&q=85", className: "" },
-  { type: "photo", label: "Just us", date: "A thousand little moments", image: "https://images.unsplash.com/photo-1529636798458-92182e662485?auto=format&fit=crop&w=1200&q=85", className: "memory-tall" },
-];
+type DriveFile = { id: string; name: string; mimeType: string; webViewLink?: string; thumbnailLink?: string };
 
 export default function Home() {
-  const [filter, setFilter] = useState<"all" | "photo" | "video">("all");
-  const [opened, setOpened] = useState(false);
-  const [page, setPage] = useState(0);
-  const [lightbox, setLightbox] = useState<{image:string;label:string;date:string;mimeType?:string} | null>(null);
-  const [driveFolders, setDriveFolders] = useState<{id:string;name:string}[]>([]);
-  const [driveFiles, setDriveFiles] = useState<{id:string;name:string;mimeType:string;webViewLink?:string;size?:string}[]>([]);
-  const [selectedFolder, setSelectedFolder] = useState("");
-  const [driveFolderUrl, setDriveFolderUrl] = useState("");
-  const [driveStatus, setDriveStatus] = useState("Connect Google Drive to load your real photos and videos.");
-  const [driveBusy, setDriveBusy] = useState(false);
-  const shown = memories.filter((item) => filter === "all" || item.type === filter);
+  const [driveFiles, setDriveFiles] = useState<DriveFile[]>([]);
+  const [folderUrl, setFolderUrl] = useState("");
+  const [driveStatus, setDriveStatus] = useState("Connect Google Drive and paste your wedding album folder link.");
+  const [busy, setBusy] = useState(false);
+  const [connected, setConnected] = useState(false);
+  const [spread, setSpread] = useState(-1);
+  const [preview, setPreview] = useState<DriveFile | null>(null);
+  const touchStart = useRef<number | null>(null);
+  const totalSpreads = Math.max(1, Math.ceil(driveFiles.length / 2));
 
   function extractDriveFolderId(value: string): string | null {
     const trimmed = value.trim();
-    // Accept a Google Drive folder URL or a folder ID pasted directly.
     try {
       const url = new URL(trimmed);
       if (url.hostname === "drive.google.com" || url.hostname.endsWith(".drive.google.com")) {
         const parts = url.pathname.split("/").filter(Boolean);
-        const folderIndex = parts.indexOf("folders");
-        if (folderIndex >= 0 && parts[folderIndex + 1]) return parts[folderIndex + 1];
+        const index = parts.indexOf("folders");
+        if (index >= 0 && parts[index + 1]) return parts[index + 1];
       }
-    } catch {
-      // If it is not a URL, allow a folder ID below.
-    }
-    if (/^[a-zA-Z0-9_-]{10,}$/.test(trimmed)) return trimmed;
-    return null;
+    } catch {}
+    return /^[a-zA-Z0-9_-]{10,}$/.test(trimmed) ? trimmed : null;
   }
 
-  async function loadDrive(folderId = selectedFolder) {
-    setDriveBusy(true);
-    setDriveStatus("Loading your Drive folders and media…");
+  async function loadFolder(event?: React.FormEvent) {
+    event?.preventDefault();
+    const id = extractDriveFolderId(folderUrl);
+    if (!id) { setDriveStatus("Paste a valid Google Drive folder link."); return; }
+    setBusy(true);
+    setDriveStatus("Loading your wedding memories…");
     try {
-      const folderResponse = await fetch("/api/drive/folders", { cache: "no-store" });
-      const folderData = await folderResponse.json();
-      if (!folderResponse.ok) throw new Error(folderData.error || "Connect Google Drive to continue.");
-      const folders = folderData.folders ?? [];
-      setDriveFolders(folders);
-      const params = folderId ? `?folderId=${encodeURIComponent(folderId)}` : "";
-      const filesResponse = await fetch(`/api/drive/files${params}`, { cache: "no-store" });
-      const fileData = await filesResponse.json();
-      if (!filesResponse.ok) throw new Error(fileData.error || "Could not load Drive media.");
-      setDriveFiles(fileData.files ?? []);
-      setDriveStatus(`Loaded ${(fileData.files ?? []).length} media items from Google Drive.`);
+      const response = await fetch("/api/drive/files?folderId=" + encodeURIComponent(id), { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not load this folder.");
+      const files = (data.files ?? []) as DriveFile[];
+      setDriveFiles(files);
+      setSpread(-1);
+      setDriveStatus(files.length ? "Loaded " + files.length + " photos and videos. Scroll to open your album." : "This folder has no accessible photos or videos. Check the folder and sharing permissions.");
     } catch (error) {
-      setDriveStatus(error instanceof Error ? error.message : "Could not connect to Google Drive.");
-    } finally {
-      setDriveBusy(false);
-    }
+      setDriveStatus(error instanceof Error ? error.message : "Could not load your Google Drive folder.");
+    } finally { setBusy(false); }
   }
+
+  const changeSpread = useCallback((direction: number) => {
+    setPreview(null);
+    setSpread((current) => Math.min(totalSpreads - 1, Math.max(-1, current + direction)));
+  }, [totalSpreads]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("drive") === "connected") {
-      setDriveStatus("Google Drive connected. Paste a shared folder link and choose Load folder to preview its media.");
+      setConnected(true);
+      setDriveStatus("Google Drive connected. Paste your wedding folder link below.");
       window.history.replaceState({}, "", window.location.pathname);
     } else if (params.get("drive_error")) {
-      setDriveStatus("Google Drive connection was not completed. Please try again.");
+      setDriveStatus("Google Drive connection was not completed. Please connect again.");
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
 
-  return (
-    <main>
-      <nav className="nav"><a className="brand" href="#top"><span className="brand-mark"><Heart size={15} fill="currentColor" /></span> EVER AFTER<span className="brand-dot">.</span></a><div className="nav-note">YOUR STORY, BEAUTIFULLY KEPT</div><a className="nav-link" href="#memories">Explore memories <ArrowRight size={14} /></a></nav>
-      <section className="hero" id="top">
-        <div className="hero-image" aria-hidden="true" /><div className="hero-shade" />
-        <div className="hero-content"><motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="eyebrow"><span /> A LOVE STORY IN MOTION <span /></motion.div>
-          <motion.h1 initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 0.15 }}>Some moments<br />become <em>forever.</em></motion.h1>
-          <motion.p initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.3 }}>Every photograph, every little film, every feeling.<br className="desktop-break" /> One beautiful place to return to it all.</motion.p>
-          <motion.button className="primary-button" onClick={() => { document.getElementById("memories")?.scrollIntoView({ behavior: "smooth" }); }} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}><Heart size={16} /> Open our story <ArrowRight size={16} /></motion.button>
-          <div className="hero-foot"><span>MADE OF LITTLE FOREVERS</span><span className="scroll-cue">SCROLL TO FEEL IT <ArrowDown size={13} /></span><span>EST. 24 APRIL 2026</span></div>
-        </div><div className="hero-side-note">A PERSONAL ARCHIVE OF LOVE <span>— 01 / 04</span></div>
-      </section>
-      <section className="intro section-wrap"><div className="section-kicker"><Sparkles size={14} /> NOT JUST AN ALBUM</div><h2>Life moves on.<br /><em>Love leaves a trace.</em></h2><p>A little world made for the moments you never want to lose. Wander through photographs, press play on the little films, and relive your favourite day — beautifully, on any screen.</p><div className="ornament"><span /> <Heart size={13} /> <span /></div></section>
-      <section className="memories section-wrap" id="memories"><div className="memories-heading"><div><div className="section-kicker">THE MEMORY COLLECTION</div><h2>Pages of <em>us.</em></h2></div><div className="filters" aria-label="Filter memories">{([ ["all", "All memories"], ["photo", "Photographs"], ["video", "Films"] ] as const).map(([value, label]) => <button key={value} className={filter === value ? "filter active" : "filter"} onClick={() => setFilter(value)}>{label}</button>)}</div></div>
-        <div className="drive-panel">
-          <div className="drive-panel-copy"><div className="section-kicker">YOUR PRIVATE COLLECTION</div><h3>Bring your <em>real memories</em> in.</h3><p>{driveStatus}</p></div>
-          <div className="drive-panel-actions"><a className="drive-connect" href="/api/auth/google">Connect Google Drive <ArrowRight size={15} /></a><button className="drive-refresh" disabled={driveBusy} onClick={() => void loadDrive("")}>{driveBusy ? "Loading…" : "Load my media"}</button></div>
-          <form className="drive-folder-link-form" onSubmit={(event) => {
-            event.preventDefault();
-            const folderId = extractDriveFolderId(driveFolderUrl);
-            if (!folderId) {
-              setDriveStatus("Paste a valid Google Drive folder link, such as https://drive.google.com/drive/folders/…");
-              return;
-            }
-            setSelectedFolder(folderId);
-            void loadDrive(folderId);
-          }}>
-            <label className="drive-folder-label" htmlFor="drive-folder-url">Load one shared folder</label>
-            <div className="drive-folder-link-row">
-              <input
-                id="drive-folder-url"
-                type="url"
-                value={driveFolderUrl}
-                onChange={(event) => setDriveFolderUrl(event.target.value)}
-                placeholder="Paste Google Drive folder link"
-                aria-label="Google Drive folder link"
-              />
-              <button className="drive-refresh" type="submit" disabled={driveBusy || !driveFolderUrl.trim()}>
-                {driveBusy ? "Loading…" : "Load folder"}
-              </button>
-            </div>
-            <p className="drive-link-help">Connect Google Drive first. The signed-in account must be able to access the folder.</p>
-          </form>
-          {driveFolders.length > 0 && <label className="drive-folder-label">Choose a folder
-            <select value={selectedFolder} onChange={(event) => { setSelectedFolder(event.target.value); void loadDrive(event.target.value); }}>
-              <option value="">All accessible photos and videos</option>
-              {driveFolders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
-            </select>
-          </label>}
-          {driveFiles.length > 0 && <div className="drive-media-grid">{driveFiles.map((file) => <button key={file.id} type="button" className="drive-media-card" onClick={() => setLightbox({ image: `/api/drive/media/${encodeURIComponent(file.id)}`, label: file.name, date: "From your Google Drive", mimeType: file.mimeType })}><span className="drive-media-thumb">{file.mimeType.startsWith("video/") ? <><video src={`/api/drive/media/${encodeURIComponent(file.id)}`} preload="metadata" muted /><span className="drive-media-play"><Play size={18} fill="currentColor" /></span></> : <img src={`/api/drive/media/${encodeURIComponent(file.id)}`} alt={file.name} loading="lazy" />}</span><span className="drive-media-name">{file.name}</span><span className="drive-file-kind">{file.mimeType.startsWith("video/") ? "FILM" : "PHOTO"}</span></button>)}</div>}
+  useEffect(() => {
+    const onWheel = (event: WheelEvent) => {
+      if (preview || Math.abs(event.deltaY) < 18) return;
+      event.preventDefault();
+      changeSpread(event.deltaY > 0 ? 1 : -1);
+    };
+    const onTouchStart = (event: TouchEvent) => { touchStart.current = event.touches[0]?.clientY ?? null; };
+    const onTouchEnd = (event: TouchEvent) => {
+      if (touchStart.current === null) return;
+      const delta = touchStart.current - (event.changedTouches[0]?.clientY ?? touchStart.current);
+      if (Math.abs(delta) > 35) changeSpread(delta > 0 ? 1 : -1);
+      touchStart.current = null;
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (preview) return;
+      if (["ArrowDown", "PageDown", " "].includes(event.key)) { event.preventDefault(); changeSpread(1); }
+      if (["ArrowUp", "PageUp"].includes(event.key)) { event.preventDefault(); changeSpread(-1); }
+      if (event.key === "Escape") setPreview(null);
+    };
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [changeSpread, preview]);
+
+  const visibleFiles = driveFiles.slice(Math.max(0, spread) * 2, Math.max(0, spread) * 2 + 2);
+  const mediaUrl = (file: DriveFile) => "/api/drive/media/" + encodeURIComponent(file.id);
+
+  function renderPageMedia(file: DriveFile | undefined) {
+    if (spread < 0 || !file) return null;
+    return <button className="album-media-button" onClick={() => setPreview(file)} aria-label={"View " + file.name}>
+      {file.mimeType.startsWith("video/") ? <><video src={mediaUrl(file)} preload="metadata" muted /><span className="album-video-mark"><Play size={20} fill="currentColor" /></span></> : <img src={mediaUrl(file)} alt={file.name} />}
+      <span className="album-photo-caption">{file.name}</span>
+    </button>;
+  }
+
+  return <main className="album-experience">
+    <div className="album-atmosphere" />
+    <div className="album-topline"><span><Heart size={13} fill="currentColor" /> OUR STORY</span><span>24 · 04 · 2026</span></div>
+    <section className={"immersive-book " + (spread >= 0 ? "is-open" : "is-closed")} aria-label="Ajith and Anusha wedding album">
+      <div className="book-ground-shadow" />
+      <div className="wedding-book">
+        <div className="book-pages-edge" /><div className="book-back-cover" />
+        <div className="book-spread">
+          <div className="album-page left-page">
+            {renderPageMedia(visibleFiles[0]) || <div className="page-intro"><span className="page-ornament">✦</span><p>Every little moment<br />led us here.</p><Heart size={15} /></div>}
+            <span className="page-number">{spread >= 0 ? spread * 2 + 1 : ""}</span>
+          </div>
+          <div className="book-gutter" />
+          <div className="album-page right-page">
+            {renderPageMedia(visibleFiles[1]) || <div className="page-intro right-intro"><span className="page-ornament">✦</span><p>Our forever<br /><em>starts here.</em></p><span className="page-date">AJITH & ANUSHA · 2026</span></div>}
+            <span className="page-number">{spread >= 0 ? spread * 2 + 2 : ""}</span>
+          </div>
         </div>
-        <div className="memory-grid">{shown.map((item, index) => <motion.article key={item.label} className={`memory-card ${item.className}`} layout initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: index * 0.07 }}><button className="memory-photo memory-photo-button" style={{ backgroundImage: `url(${item.image})` }} aria-label={`Open ${item.label}`} onClick={() => setLightbox(item)}>{item.type === "video" && <span className="play-button"><Play size={20} fill="currentColor" /></span>}<span className="memory-number">{String(index + 1).padStart(2, "0")}</span><span className="memory-open-hint">OPEN MEMORY ↗</span></button><div className="memory-caption"><div><h3>{item.label}</h3><p>{item.date}</p></div>{item.type === "video" ? <Play size={15} /> : <Heart size={15} />}</div></motion.article>)}</div>
-        <div className="collection-note"><span className="note-line" /> <span>YOUR MEMORIES WILL LIVE HERE</span> <span className="note-line" /></div></section>
-      {lightbox && <div className="memory-lightbox" role="dialog" aria-modal="true" aria-label={lightbox.label} onClick={() => setLightbox(null)}><button className="lightbox-close" aria-label="Close memory" onClick={() => setLightbox(null)}><X size={20} /></button><div className="lightbox-content" onClick={(event) => event.stopPropagation()}>{lightbox.mimeType?.startsWith("video/") ? <video className="lightbox-media-video" src={lightbox.image} controls autoPlay playsInline /> : <img className="lightbox-media-image" src={lightbox.image} alt={lightbox.label} />}<div className="lightbox-caption"><span className="section-kicker">A MOMENT TO KEEP</span><h2>{lightbox.label}</h2><p>{lightbox.date}</p></div></div></div>}
-      <section className="album-section"><div className="album-glow" /><div className="album-copy"><div className="section-kicker"><Sparkles size={14} /> MADE TO BE REVISITED</div><h2>A book that<br /><em>feels like you.</em></h2><p>Turn the page. Stay a little longer. Let your story unfold like a keepsake album — made for your phone, your laptop, and the big screen in your living room.</p><button className="text-button" onClick={() => { setOpened(!opened); setPage(0); }}><span>{opened ? "Close album preview" : "Preview the album"}</span> <ArrowRight size={16} /></button></div>
-        <div className={`book-stage ${opened ? "book-open" : ""}`}><div className="book-shadow" /><div className="book-cover"><div className="cover-frame"><span className="cover-small">OUR MOST BEAUTIFUL DAYS</span><div className="cover-heart"><Heart size={23} /></div><div className="cover-title">Our<br /><em>Story</em></div><span className="cover-names">A LITTLE FOREVER, TOGETHER</span><span className="cover-date">24 · 04 · 2026</span><button className="cover-open-button" onClick={() => setOpened(true)}>OPEN THE ALBUM <ArrowRight size={13} /></button></div></div><div className="book-page"><span className="page-label">CHAPTER {String(page + 1).padStart(2, "0")}</span><div className="page-photo" style={{ backgroundImage: `url(${memories[page % memories.length].image})` }} /><span className="page-caption">{memories[page % memories.length].label}</span><div className="page-controls"><button aria-label="Previous page" onClick={() => { setPage((page + memories.length - 1) % memories.length); setOpened(true); }}><ArrowLeft size={15} /></button><span>{page + 1} / {memories.length}</span><button aria-label="Next page" onClick={() => { setPage((page + 1) % memories.length); setOpened(true); }}><ArrowRight size={15} /></button></div></div><div className="book-hint"><Maximize2 size={12} /> {opened ? "TURN THROUGH THE MEMORIES" : "TAP THE COVER TO OPEN"}</div></div></section>
-      <section className="closing section-wrap"><div className="closing-heart"><Heart size={19} /></div><div className="section-kicker">THE DAY THAT BECAME FOREVER</div><h2>Ajith <em>&</em> Anusha</h2><p>24 April 2026 · and all the days that followed.</p><div className="closing-rule"><span /> <Heart size={12} /> <span /></div><p className="closing-small">A private little universe, made of the moments that matter most.</p></section>
-      <footer className="footer"><a className="brand" href="#top"><span className="brand-mark"><Heart size={13} fill="currentColor" /></span> EVER AFTER<span className="brand-dot">.</span></a><span>MADE WITH LOVE, FOR THE LOVE OF IT.</span><a href="#top" className="back-top">BACK TO TOP ↑</a></footer>
-    </main>
-  );
+        <button className="book-cover" onClick={() => changeSpread(1)} aria-label="Open the wedding album">
+          <span className="cover-border" /><span className="cover-topline">A KEEPSAKE OF OUR LOVE</span>
+          <span className="cover-emblem"><Heart size={25} strokeWidth={1.2} /></span>
+          <span className="cover-title">Our<br /><em>Wedding</em><br />Story</span>
+          <span className="cover-divider"><i /> ✦ <i /></span>
+          <span className="cover-names">AJITH <b>&</b> ANUSHA</span><span className="cover-date">24 APRIL 2026</span>
+          <span className="cover-hint">{driveFiles.length ? "SCROLL TO OPEN" : "ADD YOUR MEMORIES BELOW"}</span>
+        </button>
+      </div>
+    </section>
+    <div className="album-footer">
+      <div className="album-status">{busy && <LoaderCircle size={13} className="spin" />}<span>{driveStatus}</span></div>
+      <form className="album-folder-form" onSubmit={loadFolder}>
+        <input value={folderUrl} onChange={(event) => setFolderUrl(event.target.value)} aria-label="Google Drive wedding folder link" placeholder="Paste your Google Drive wedding folder link" />
+        <button type="submit" disabled={busy || !folderUrl.trim()}>{busy ? "LOADING…" : "LOAD ALBUM"}</button>
+      </form>
+      <div className="album-footer-actions">
+        {!connected ? <a href="/api/auth/google" className="connect-drive-link"><Link2 size={13} /> CONNECT GOOGLE DRIVE</a> : <span className="connected-label"><span /> GOOGLE DRIVE CONNECTED</span>}
+        {driveFiles.length > 0 && <span className="album-count">{Math.min(Math.max(spread + 1, 0) * 2, driveFiles.length)} / {driveFiles.length} MEMORIES</span>}
+      </div>
+    </div>
+    {preview && <div className="album-preview-overlay" role="dialog" aria-modal="true" aria-label={preview.name} onClick={() => setPreview(null)}>
+      <button className="album-preview-close" onClick={() => setPreview(null)} aria-label="Close preview"><X size={20} /></button>
+      <div className="album-preview-content" onClick={(event) => event.stopPropagation()}>
+        {preview.mimeType.startsWith("video/") ? <video src={mediaUrl(preview)} controls autoPlay playsInline /> : <img src={mediaUrl(preview)} alt={preview.name} />}
+        <p>{preview.name}</p>
+      </div>
+    </div>}
+  </main>;
 }
