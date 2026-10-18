@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Heart, Link2, LoaderCircle, Play, X } from "lucide-react";
 
 type DriveFile = { id: string; name: string; mimeType: string; webViewLink?: string; thumbnailLink?: string };
@@ -29,7 +29,7 @@ export default function Home() {
     return /^[a-zA-Z0-9_-]{10,}$/.test(trimmed) ? trimmed : null;
   }
 
-  async function loadFolder(event?: React.FormEvent) {
+  async function loadFolder(event?: FormEvent) {
     event?.preventDefault();
     const id = extractDriveFolderId(folderUrl);
     if (!id) { setDriveStatus("Paste a valid Google Drive folder link."); return; }
@@ -114,7 +114,7 @@ export default function Home() {
       <div className="book-ground-shadow" />
       <div className="wedding-book">
         <div className="book-pages-edge" /><div className="book-back-cover" />
-        <div className="book-spread">
+        <div className="book-spread" key={spread}>
           <div className="album-page left-page">
             {renderPageMedia(visibleFiles[0]) || <div className="page-intro"><span className="page-ornament">✦</span><p>Every little moment<br />led us here.</p><Heart size={15} /></div>}
             <span className="page-number">{spread >= 0 ? spread * 2 + 1 : ""}</span>
