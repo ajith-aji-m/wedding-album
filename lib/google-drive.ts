@@ -105,24 +105,15 @@ async function refreshAccessToken(session: DriveSession): Promise<DriveSession> 
   return { ...session, accessToken: body.access_token, expiresAt: Date.now() + Number(body.expires_in ?? 3600) * 1000 };
 }
 
-export async function getDriveAccessToken(): Promise<string | null> {
+export async function getDriveAccess(): Promise<{ accessToken: string; refreshedSession: DriveSession | null } | null> {
   const session = await readSession();
   if (!session) return null;
   const refreshed = await refreshAccessToken(session);
-  if (refreshed !== session) {
-    // Route handlers persist refreshed sessions via saveRefreshedSession.
-    pendingRefreshedSession = refreshed;
-  }
-  return refreshed.accessToken;
+  return { accessToken: refreshed.accessToken, refreshedSession: refreshed !== session ? refreshed : null };
 }
 
-let pendingRefreshedSession: DriveSession | null = null;
-
-export function saveRefreshedSession(response: NextResponse) {
-  if (pendingRefreshedSession) {
-    setDriveSessionCookie(response, pendingRefreshedSession);
-    pendingRefreshedSession = null;
-  }
+export function saveRefreshedSession(response: NextResponse, session: DriveSession | null) {
+  if (session) setDriveSessionCookie(response, session);
 }
 
 export async function exchangeCode(code: string): Promise<DriveSession> {
