@@ -135,3 +135,93 @@ html:has(.album-experience), body:has(.album-experience) {
 .cover-divider i { background: rgba(241, 174, 193, .52) !important; }
 .cover-names { color: #ffe3ea !important; }
 .cover-names b { color: #f0a7bd !important; }
+
+
+/* Give the album real visible thickness and a sculpted leather-bound spine */
+.immersive-book { perspective: 2400px !important; perspective-origin: 50% 48%; }
+.wedding-book {
+  transform-style: preserve-3d !important;
+  filter: drop-shadow(0 30px 28px rgba(0,0,0,.52)) !important;
+}
+.wedding-book::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 2%;
+  bottom: 1%;
+  left: 0;
+  width: 3.2%;
+  border-radius: 5px 0 0 5px;
+  background: linear-gradient(90deg,#16050b 0%,#7b203b 22%,#3b1020 58%,#17070d 100%);
+  box-shadow: inset 1px 0 2px rgba(255,210,220,.35), inset -4px 0 5px rgba(0,0,0,.45);
+  transform: translateZ(3px);
+  pointer-events: none;
+}
+.book-back-cover {
+  inset: 1.5% 1.2% .5% 1.4% !important;
+  border-radius: 3px 11px 11px 3px !important;
+  background: linear-gradient(90deg,#210711 0%,#6d1c35 2.8%,#310d1b 6%,#5b1930 50%,#2a0915 96%,#10050a 100%) !important;
+  box-shadow: inset 0 0 0 1px rgba(247,171,193,.32), 7px 9px 15px rgba(0,0,0,.36) !important;
+  transform: translateZ(-12px) !important;
+}
+.book-pages-edge {
+  inset: 2.4% .8% 1.3% 2.8% !important;
+  border-radius: 2px 7px 7px 2px;
+  background:
+    repeating-linear-gradient(0deg,rgba(119,74,83,.22) 0 1px,#fff4ed 1px 2px,#e6d2cb 2px 3px),
+    linear-gradient(90deg,#c8aaa9,#fff3eb 7%,#f7e8df 92%,#c6a6a5) !important;
+  box-shadow: 2px 4px 0 rgba(0,0,0,.12), 4px 8px 10px rgba(0,0,0,.22), inset 0 0 0 1px rgba(105,46,61,.18) !important;
+  transform: translateZ(-5px) !important;
+}
+.book-spread {
+  inset: 2.8% 2% 1.8% 2.7% !important;
+  transform-origin: left center !important;
+  transform: rotateY(-9deg) translateZ(-1px) !important;
+  background: linear-gradient(90deg,#ead7ce 0%,#fff7ed 5%,#f5e7dc 49%,#d9c1b7 50%,#fff6ed 52%,#f0dfd4 100%) !important;
+  box-shadow: inset 0 0 22px rgba(81,26,43,.2), 1px 1px 1px rgba(255,255,255,.5) !important;
+}
+.is-open .book-spread { transform: rotateY(0deg) translateZ(0) !important; }
+.book-gutter {
+  background: linear-gradient(90deg,rgba(67,20,36,.38),rgba(255,248,239,.8) 38%,rgba(104,45,59,.24) 72%,rgba(49,15,28,.35)) !important;
+  box-shadow: -5px 0 8px rgba(63,21,34,.1), 5px 0 8px rgba(63,21,34,.12) !important;
+}
+.album-page {
+  background: linear-gradient(135deg,#fff8f0 0%,#f1e0d7 100%) !important;
+}
+.left-page { box-shadow: inset -16px 0 22px rgba(75,22,41,.12), inset 0 0 0 1px rgba(255,255,255,.58) !important; }
+.right-page { box-shadow: inset 16px 0 22px rgba(75,22,41,.12), inset 0 0 0 1px rgba(255,255,255,.58) !important; }
+.book-cover {
+  background:
+    radial-gradient(ellipse at 54% 42%,rgba(181,54,87,.46),transparent 48%),
+    linear-gradient(105deg,#260812 0%,#691a35 17%,#481126 49%,#7d2341 73%,#2a0915 100%) !important;
+  border-radius: 3px 10px 10px 3px !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,198,214,.72),
+    inset 0 0 0 7px rgba(24,3,10,.34),
+    inset 0 0 0 9px rgba(250,170,195,.22),
+    inset 12px 0 18px rgba(0,0,0,.42),
+    4px 6px 9px rgba(0,0,0,.28) !important;
+  transform: rotateY(0deg) translateZ(8px) !important;
+}
+.book-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 17px;
+  background: linear-gradient(90deg,rgba(0,0,0,.42),rgba(255,199,214,.12),transparent);
+  pointer-events: none;
+}
+.cover-border {
+  inset: 18px !important;
+  border: 1px solid rgba(255,192,210,.56) !important;
+  box-shadow: inset 0 0 0 4px rgba(255,192,210,.07);
+}
+.is-open .book-cover {
+  transform: rotateY(-168deg) translateZ(8px) !important;
+  filter: brightness(.74) saturate(.92) !important;
+}
+@media (max-width:700px) {
+  .wedding-book::before { width: 3%; }
+  .book-pages-edge { inset: 2.4% .5% 1.3% 2.5% !important; }
+  .book-cover { border-radius: 2px 7px 7px 2px !important; }
+}
