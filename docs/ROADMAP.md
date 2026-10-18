@@ -1,28 +1,35 @@
 # Wedding Album — Development Checklist
 
-## Completed in the current prototype
+## Implemented in the repository
 - [x] Next.js App Router + TypeScript project setup
-- [x] Responsive cinematic landing page and styling
-- [x] Sample photo/video gallery with category filters
-- [x] CSS-based album-cover/page preview with page navigation
-- [x] Basic health endpoint at `/api/health`
-- [x] Environment-variable template (empty placeholders only)
-- [x] Local development and Vercel deployment instructions
+- [x] Cinematic responsive landing page and sample gallery filters
+- [x] Album preview with page navigation (prototype, not true 3D)
+- [x] Google OAuth start/callback routes with random state validation
+- [x] Read-only Google Drive scope
+- [x] Encrypted, HTTP-only cookie session for Google tokens
+- [x] Access-token refresh flow
+- [x] API endpoint to list Google Drive folders
+- [x] API endpoint to list image/video files, optionally filtered by folder
+- [x] Landing page panel to connect Drive and list real media filenames
+- [x] Environment-variable example and Google Cloud setup instructions
+- [x] Health endpoint and CI build workflow definition
 
-## Remaining before this is a real usable album
-- [ ] Run a production build and fix any build/lint errors
-- [ ] Deploy to Vercel and verify the live URL
-- [ ] Replace sample images with actual album media
-- [ ] Implement a genuine page-turn interaction and accessible keyboard/touch controls
-- [ ] Implement Google OAuth sign-in and secure server-side token storage
-- [ ] Let the user select a Drive folder and list its image/video files
-- [ ] Add thumbnails, loading states, error handling, and video playback
-- [ ] Implement QR sharing with an explicit privacy model
-- [ ] Test on Android/iOS browsers, desktop browsers, and TV browsers
-- [ ] Add privacy/security checks before allowing shared access
+## Still required
+- [ ] Add real Google OAuth credentials to local/Vercel environment and test sign-in end to end
+- [ ] Verify GitHub Actions production build; no run result has been confirmed yet
+- [ ] Show authenticated Drive thumbnails in the gallery (currently the Drive panel lists filenames)
+- [ ] Connect selected Drive media to the main gallery and page preview
+- [ ] Implement actual video playback
+- [ ] Implement genuine page-turn animation and keyboard/touch accessibility
+- [ ] Add QR sharing with an explicit private/public album access model
+- [ ] Test on mobile, desktop, and TV browsers
+- [ ] Review token/session handling and deployment security before production
 
-## Important notes
-- The gallery currently uses public sample image URLs; it does not read Google Drive.
-- The video card is a placeholder, not a working video player.
-- The album preview is a CSS interaction, not a full 3D/WebGL book.
-- Do not add Google client secrets, access tokens, or refresh tokens to Git.
+## Configuration needed from the owner
+Set these in `.env.local` for local development and in Vercel Environment Variables for production:
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_REDIRECT_URI` — must exactly match the Google Cloud OAuth redirect URI
+- `APP_SECRET` — a strong random secret, at least 32 characters
+
+Never commit real secrets, access tokens, or refresh tokens to GitHub.
