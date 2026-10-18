@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDriveAccessToken, saveRefreshedSession } from "@/lib/google-drive";
+import { getDriveAccess, saveRefreshedSession } from "@/lib/google-drive";
 
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   try {
-    const token = await getDriveAccessToken();
-    if (!token) return NextResponse.json({ error: "Google Drive is not connected.", connectUrl: "/api/auth/google" }, { status: 401 });
+    const driveSession = await getDriveAccess();
+    if (!driveSession) return NextResponse.json({ error: "Google Drive is not connected.", connectUrl: "/api/auth/google" }, { status: 401 });
 
     const folderId = request.nextUrl.searchParams.get("folderId");
     const clauses = ["trashed = false", "(mimeType contains 'image/' or mimeType contains 'video/')"];
@@ -18,13 +18,13 @@ export async function GET(request: NextRequest) {
       fields: "nextPageToken,files(id,name,mimeType,thumbnailLink,webViewLink,createdTime,modifiedTime,size)",
     });
     const upstream = await fetch(`https://www.googleapis.com/drive/v3/files?${params.toString()}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${driveSession.accessToken}` },
       cache: "no-store",
     });
     const data = await upstream.json();
     if (!upstream.ok) {
       const response = NextResponse.json({ error: "Google Drive could not list files. Reconnect or check Drive permissions." }, { status: upstream.status === 401 ? 401 : 502 });
-      saveRefreshedSession(response);
+      saveRefreshedSession(response, driveSession.refreshedSession);
       return response;
     }
     const response = NextResponse.json({ files: data.files ?? [], nextPageToken: data.nextPageToken ?? null });
