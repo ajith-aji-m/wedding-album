@@ -19,9 +19,19 @@ export default function Home() {
   const [driveFolders, setDriveFolders] = useState<{id:string;name:string}[]>([]);
   const [driveFiles, setDriveFiles] = useState<{id:string;name:string;mimeType:string;webViewLink?:string;size?:string}[]>([]);
   const [selectedFolder, setSelectedFolder] = useState("");
+  const [driveFolderUrl, setDriveFolderUrl] = useState("");
   const [driveStatus, setDriveStatus] = useState("Connect Google Drive to load your real photos and videos.");
   const [driveBusy, setDriveBusy] = useState(false);
   const shown = memories.filter((item) => filter === "all" || item.type === filter);
+
+  function extractDriveFolderId(value: string): string | null {
+    const trimmed = value.trim();
+    // Accept a full Drive folder URL or a folder ID pasted directly.
+    const urlMatch = trimmed.match(/drive\\.google\\.com\\/drive\\/folders\\/([a-zA-Z0-9_-]+)/);
+    if (urlMatch?.[1]) return urlMatch[1];
+    if (/^[a-zA-Z0-9_-]{10,}$/.test(trimmed)) return trimmed;
+    return null;
+  }
 
   async function loadDrive(folderId = selectedFolder) {
     setDriveBusy(true);
@@ -73,6 +83,32 @@ export default function Home() {
         <div className="drive-panel">
           <div className="drive-panel-copy"><div className="section-kicker">YOUR PRIVATE COLLECTION</div><h3>Bring your <em>real memories</em> in.</h3><p>{driveStatus}</p></div>
           <div className="drive-panel-actions"><a className="drive-connect" href="/api/auth/google">Connect Google Drive <ArrowRight size={15} /></a><button className="drive-refresh" disabled={driveBusy} onClick={() => void loadDrive("")}>{driveBusy ? "Loading…" : "Load my media"}</button></div>
+          <form className="drive-folder-link-form" onSubmit={(event) => {
+            event.preventDefault();
+            const folderId = extractDriveFolderId(driveFolderUrl);
+            if (!folderId) {
+              setDriveStatus("Paste a valid Google Drive folder link, such as https://drive.google.com/drive/folders/…");
+              return;
+            }
+            setSelectedFolder(folderId);
+            void loadDrive(folderId);
+          }}>
+            <label className="drive-folder-label" htmlFor="drive-folder-url">Load one shared folder</label>
+            <div className="drive-folder-link-row">
+              <input
+                id="drive-folder-url"
+                type="url"
+                value={driveFolderUrl}
+                onChange={(event) => setDriveFolderUrl(event.target.value)}
+                placeholder="Paste Google Drive folder link"
+                aria-label="Google Drive folder link"
+              />
+              <button className="drive-refresh" type="submit" disabled={driveBusy || !driveFolderUrl.trim()}>
+                {driveBusy ? "Loading…" : "Load folder"}
+              </button>
+            </div>
+            <p className="drive-link-help">Connect Google Drive first. The signed-in account must be able to access the folder.</p>
+          </form>
           {driveFolders.length > 0 && <label className="drive-folder-label">Choose a folder
             <select value={selectedFolder} onChange={(event) => { setSelectedFolder(event.target.value); void loadDrive(event.target.value); }}>
               <option value="">All accessible photos and videos</option>
