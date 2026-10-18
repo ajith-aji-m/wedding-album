@@ -6,7 +6,9 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   try {
     const driveSession = await getDriveAccess();
-    if (!driveSession) return NextResponse.json({ error: "Google Drive is not connected.", connectUrl: "/api/auth/google" }, { status: 401 });
+    if (!driveSession) {
+      return NextResponse.json({ error: "Google Drive session is missing. Connect Google Drive first.", code: "DRIVE_SESSION_MISSING" }, { status: 401 });
+    }
 
     const folderId = request.nextUrl.searchParams.get("folderId");
     const clauses = ["trashed = false", "(mimeType contains 'image/' or mimeType contains 'video/')"];
@@ -23,7 +25,12 @@ export async function GET(request: NextRequest) {
     });
     const data = await upstream.json();
     if (!upstream.ok) {
-      const response = NextResponse.json({ error: "Google Drive could not list files. Reconnect or check Drive permissions." }, { status: upstream.status === 401 ? 401 : 502 });
+      const response = NextResponse.json({
+        error: data?.error?.message
+          ? `Google Drive API error: ${data.error.message}`
+          : "Google Drive API could not list media files.",
+        code: data?.error?.errors?.[0]?.reason ?? "DRIVE_LIST_FAILED",
+      }, { status: upstream.status === 401 || upstream.status === 403 ? upstream.status : 502 });
       saveRefreshedSession(response, driveSession.refreshedSession);
       return response;
     }
@@ -32,6 +39,6 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to load Google Drive files.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: message, code: "DRIVE_FILES_ROUTE_ERROR" }, { status: 500 });
   }
 }
