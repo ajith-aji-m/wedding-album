@@ -26,9 +26,17 @@ export default function Home() {
 
   function extractDriveFolderId(value: string): string | null {
     const trimmed = value.trim();
-    // Accept a full Drive folder URL or a folder ID pasted directly.
-    const urlMatch = trimmed.match(/drive\.google\.com\/drive\/folders\/([a-zA-Z0-9_-]+)/);
-    if (urlMatch?.[1]) return urlMatch[1];
+    // Accept a Google Drive folder URL or a folder ID pasted directly.
+    try {
+      const url = new URL(trimmed);
+      if (url.hostname === "drive.google.com" || url.hostname.endsWith(".drive.google.com")) {
+        const parts = url.pathname.split("/").filter(Boolean);
+        const folderIndex = parts.indexOf("folders");
+        if (folderIndex >= 0 && parts[folderIndex + 1]) return parts[folderIndex + 1];
+      }
+    } catch {
+      // If it is not a URL, allow a folder ID below.
+    }
     if (/^[a-zA-Z0-9_-]{10,}$/.test(trimmed)) return trimmed;
     return null;
   }
