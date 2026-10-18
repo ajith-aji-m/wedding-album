@@ -13,6 +13,7 @@ export default function Home() {
   const [connected, setConnected] = useState(false);
   const [spread, setSpread] = useState(-1);
   const [preview, setPreview] = useState<DriveFile | null>(null);
+  const [loadedMedia, setLoadedMedia] = useState<string[]>([]);
   const touchStart = useRef<number | null>(null);
   const totalSpreads = Math.max(1, Math.ceil(driveFiles.length / 2));
 
@@ -41,6 +42,7 @@ export default function Home() {
       if (!response.ok) throw new Error(data.error || "Could not load this folder.");
       const files = (data.files ?? []) as DriveFile[];
       setDriveFiles(files);
+      setLoadedMedia([]);
       setSpread(-1);
       setDriveStatus(files.length ? "Loaded " + files.length + " photos and videos. Scroll to open your album." : "This folder has no accessible photos or videos. Check the folder and sharing permissions.");
     } catch (error) {
@@ -101,8 +103,13 @@ export default function Home() {
 
   function renderPageMedia(file: DriveFile | undefined) {
     if (spread < 0 || !file) return null;
-    return <button className="album-media-button" onClick={() => setPreview(file)} aria-label={"View " + file.name}>
-      {file.mimeType.startsWith("video/") ? <><video src={mediaUrl(file)} preload="metadata" muted /><span className="album-video-mark"><Play size={20} fill="currentColor" /></span></> : <img src={mediaUrl(file)} alt={file.name} />}
+    const loaded = loadedMedia.includes(file.id);
+    const markLoaded = () => setLoadedMedia((current) => current.includes(file.id) ? current : [...current, file.id]);
+    return <button className={"album-media-button " + (loaded ? "media-ready" : "media-loading")} onClick={() => loaded && setPreview(file)} aria-label={"View " + file.name} disabled={!loaded}>
+      {!loaded && <span className="petal-loading" aria-label={"Loading " + file.name}>
+        <i className="fall-petal petal-one">✿</i><i className="fall-petal petal-two">❀</i><i className="fall-petal petal-three">✿</i><i className="fall-petal petal-four">❀</i><span className="petal-loading-label">GATHERING MEMORIES</span>
+      </span>}
+      {file.mimeType.startsWith("video/") ? <><video src={mediaUrl(file)} preload="metadata" muted onLoadedData={markLoaded} onError={markLoaded} /><span className="album-video-mark"><Play size={20} fill="currentColor" /></span></> : <img src={mediaUrl(file)} alt={file.name} onLoad={markLoaded} onError={markLoaded} />}
       <span className="album-photo-caption">{file.name}</span>
     </button>;
   }
