@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowDown, ArrowLeft, ArrowRight, Heart, Maximize2, Play, Sparkles } from "lucide-react";
 
@@ -15,7 +15,45 @@ export default function Home() {
   const [filter, setFilter] = useState<"all" | "photo" | "video">("all");
   const [opened, setOpened] = useState(false);
   const [page, setPage] = useState(0);
+  const [driveFolders, setDriveFolders] = useState<{id:string;name:string}[]>([]);
+  const [driveFiles, setDriveFiles] = useState<{id:string;name:string;mimeType:string;webViewLink?:string;size?:string}[]>([]);
+  const [selectedFolder, setSelectedFolder] = useState("");
+  const [driveStatus, setDriveStatus] = useState("Connect Google Drive to load your real photos and videos.");
+  const [driveBusy, setDriveBusy] = useState(false);
   const shown = memories.filter((item) => filter === "all" || item.type === filter);
+
+  async function loadDrive(folderId = selectedFolder) {
+    setDriveBusy(true);
+    setDriveStatus("Loading your Drive folders and media…");
+    try {
+      const folderResponse = await fetch("/api/drive/folders", { cache: "no-store" });
+      const folderData = await folderResponse.json();
+      if (!folderResponse.ok) throw new Error(folderData.error || "Connect Google Drive to continue.");
+      const folders = folderData.folders ?? [];
+      setDriveFolders(folders);
+      const params = folderId ? `?folderId=${encodeURIComponent(folderId)}` : "";
+      const filesResponse = await fetch(`/api/drive/files${params}`, { cache: "no-store" });
+      const fileData = await filesResponse.json();
+      if (!filesResponse.ok) throw new Error(fileData.error || "Could not load Drive media.");
+      setDriveFiles(fileData.files ?? []);
+      setDriveStatus(`Loaded ${(fileData.files ?? []).length} media items from Google Drive.`);
+    } catch (error) {
+      setDriveStatus(error instanceof Error ? error.message : "Could not connect to Google Drive.");
+    } finally {
+      setDriveBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("drive") === "connected") {
+      void loadDrive("");
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (params.get("drive_error")) {
+      setDriveStatus("Google Drive connection was not completed. Please try again.");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   return (
     <main>
@@ -31,6 +69,17 @@ export default function Home() {
       </section>
       <section className="intro section-wrap"><div className="section-kicker"><Sparkles size={14} /> NOT JUST AN ALBUM</div><h2>Life moves on.<br /><em>Love leaves a trace.</em></h2><p>A little world made for the moments you never want to lose. Wander through photographs, press play on the little films, and relive your favourite day — beautifully, on any screen.</p><div className="ornament"><span /> <Heart size={13} /> <span /></div></section>
       <section className="memories section-wrap" id="memories"><div className="memories-heading"><div><div className="section-kicker">THE MEMORY COLLECTION</div><h2>Pages of <em>us.</em></h2></div><div className="filters" aria-label="Filter memories">{([ ["all", "All memories"], ["photo", "Photographs"], ["video", "Films"] ] as const).map(([value, label]) => <button key={value} className={filter === value ? "filter active" : "filter"} onClick={() => setFilter(value)}>{label}</button>)}</div></div>
+        <div className="drive-panel">
+          <div className="drive-panel-copy"><div className="section-kicker">YOUR PRIVATE COLLECTION</div><h3>Bring your <em>real memories</em> in.</h3><p>{driveStatus}</p></div>
+          <div className="drive-panel-actions"><a className="drive-connect" href="/api/auth/google">Connect Google Drive <ArrowRight size={15} /></a><button className="drive-refresh" disabled={driveBusy} onClick={() => void loadDrive("")}>{driveBusy ? "Loading…" : "Load my media"}</button></div>
+          {driveFolders.length > 0 && <label className="drive-folder-label">Choose a folder
+            <select value={selectedFolder} onChange={(event) => { setSelectedFolder(event.target.value); void loadDrive(event.target.value); }}>
+              <option value="">All accessible photos and videos</option>
+              {driveFolders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
+            </select>
+          </label>}
+          {driveFiles.length > 0 && <div className="drive-file-list">{driveFiles.map((file) => <a key={file.id} href={file.webViewLink || "#"} target="_blank" rel="noreferrer" className="drive-file"><span className="drive-file-kind">{file.mimeType.startsWith("video/") ? "FILM" : "PHOTO"}</span><span>{file.name}</span><ArrowRight size={13} /></a>)}</div>}
+        </div>
         <div className="memory-grid">{shown.map((item, index) => <motion.article key={item.label} className={`memory-card ${item.className}`} layout initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: index * 0.07 }}><div className="memory-photo" style={{ backgroundImage: `url(${item.image})` }}>{item.type === "video" && <button className="play-button" aria-label="Video preview" onClick={() => alert("Sample video placeholder. Connect your Google Drive to enable your own clips.")}><Play size={20} fill="currentColor" /></button>}<span className="memory-number">{String(index + 1).padStart(2, "0")}</span></div><div className="memory-caption"><div><h3>{item.label}</h3><p>{item.date}</p></div>{item.type === "video" ? <Play size={15} /> : <Heart size={15} />}</div></motion.article>)}</div>
         <div className="collection-note"><span className="note-line" /> <span>YOUR MEMORIES WILL LIVE HERE</span> <span className="note-line" /></div></section>
       <section className="album-section"><div className="album-glow" /><div className="album-copy"><div className="section-kicker"><Sparkles size={14} /> MADE TO BE REVISITED</div><h2>A book that<br /><em>feels like you.</em></h2><p>Turn the page. Stay a little longer. Let your story unfold like a keepsake album — made for your phone, your laptop, and the big screen in your living room.</p><button className="text-button" onClick={() => { setOpened(!opened); setPage(0); }}><span>{opened ? "Close album preview" : "Preview the album"}</span> <ArrowRight size={16} /></button></div>
