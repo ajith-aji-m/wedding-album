@@ -88,3 +88,8 @@ body:has(.album-experience) main{margin:0}
 .spin{animation:album-spin 1s linear infinite}@keyframes album-spin{to{transform:rotate(360deg)}}
 @media(max-width:700px){.album-experience{min-height:520px;padding:62px 12px 145px}.album-topline{top:17px;left:18px;right:18px;font-size:8px}.immersive-book{width:96vw;height:min(54vh,440px);min-height:280px}.book-spread{inset:3% 2% 2% 2%;grid-template-columns:1fr 8px 1fr}.album-page{padding:5%}.album-media-button img,.album-media-button video{height:calc(100% - 22px)}.album-photo-caption{height:22px;font-size:8px}.cover-border{inset:12px}.book-cover{gap:10px}.cover-emblem{width:40px;height:40px}.cover-title{font-size:clamp(31px,9vw,46px)}.cover-hint{bottom:25px}.album-footer{padding:10px 12px 13px}.album-folder-form input{padding:10px 8px;font-size:10px}.album-folder-form button{padding:0 10px;font-size:8px}.album-footer-actions{gap:12px}.connect-drive-link,.connected-label,.album-count{font-size:7px}}
 @media(prefers-reduced-motion:reduce){.book-cover,.book-spread{transition:none!important}}
+
+
+.book-spread{animation:album-spread-enter .72s cubic-bezier(.2,.72,.18,1) both}
+@keyframes album-spread-enter{from{clip-path:inset(0 48% 0 48%);filter:brightness(.7);transform:rotateY(-10deg) translateZ(-8px)}to{clip-path:inset(0);filter:brightness(1);transform:rotateY(0) translateZ(0)}}
+@media(prefers-reduced-motion:reduce){.book-spread{animation:none!important}}
