@@ -66,7 +66,7 @@ export default function Home() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("drive") === "connected") {
-      void loadDrive("");
+      setDriveStatus("Google Drive connected. Paste a shared folder link and choose Load folder to preview its media.");
       window.history.replaceState({}, "", window.location.pathname);
     } else if (params.get("drive_error")) {
       setDriveStatus("Google Drive connection was not completed. Please try again.");
