@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowDown, ArrowLeft, ArrowRight, Heart, Maximize2, Play, Sparkles, Volume2 } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, Heart, Maximize2, Play, Sparkles } from "lucide-react";
 
 const memories = [
   { type: "photo", label: "The beginning", date: "A moment to remember", image: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1400&q=85", className: "memory-tall" },
