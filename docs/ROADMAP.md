@@ -11,6 +11,8 @@
 - [x] API endpoint to list Google Drive folders
 - [x] API endpoint to list image/video files, optionally filtered by folder
 - [x] Landing page panel to connect Drive and list real media filenames
+- [x] Interactive cinematic photo lightbox for mock memories
+- [x] 3D perspective album-cover opening animation and page navigation using mock photos
 - [x] Environment-variable example and Google Cloud setup instructions
 - [x] Health endpoint and CI build workflow definition
 
@@ -19,6 +21,7 @@
 - [ ] Verify GitHub Actions production build; no run result has been confirmed yet
 - [ ] Show authenticated Drive thumbnails in the gallery (currently the Drive panel lists filenames)
 - [ ] Connect selected Drive media to the main gallery and page preview
+- [ ] Replace hard-coded sample images with a richer mock-data set and connect real thumbnails after OAuth is tested
 - [ ] Implement actual video playback
 - [ ] Implement genuine page-turn animation and keyboard/touch accessibility
 - [ ] Add QR sharing with an explicit private/public album access model
